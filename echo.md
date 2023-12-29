@@ -1,5 +1,5 @@
 # server
-
+~~~
 //common.h
 #pragma once
 #include <WinSock2.h>
@@ -79,10 +79,10 @@ void Doit(SOCKET dosock)
 	}
 	closesocket(dosock);
 }
-
+~~~
 
 # client
-
+~~~
 // common.h
 #pragma once
 #include <WinSock2.h>
@@ -141,6 +141,6 @@ int main()
 	WSACleanup();
 	return 0;
 }
-
+~~~
 
 
