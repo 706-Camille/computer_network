@@ -1,4 +1,7 @@
 # server
+### echo server
+### CS architecture(client-server)
+### C++
 ~~~
 //common.h
 #pragma once
