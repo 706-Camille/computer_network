@@ -130,16 +130,17 @@ ex) HTTP, IMAP, FTP
 - UDP는 TCP와 달리 connection setup 과정이 없기 때문에 속도면에서는 우월하다, 하지만 앞서 설명했던 TCP의 connection의 장점을 하나도 가져가지 못한다, 즉 단순하고 빠르다. header도 TCP에 비하면 field의 양이 상대적으로 적어 적은 overhead를 가진다.
   
 ## Stop-and-wait (ARQ protocol)
-##### sender는 receiver가 현재 pck을 정확하게 수신했음을 알리기 전까지 새로운 데이터를 전달하지 않는다. pkt을 보내고 해당하는 ack가 오기전에 다른 pkt을 전송하지 않음. ack가 정해진 timer(RTT 기준으로 정해짐)시간 내에 오지 않으면 (expired) 해당 pkt을 다시 재전송해준다(신뢰성). premature timeout 일 경우 아직 ack가 도착하기전에 재송신 하는 경우가 많아진다. -> 비효율적, timeout 시간이 너무 길어도 pkt loss에 대한 response가 너무 느려지므로 비효율적. 따라서 적당한 timeout 설정이 필요하다.
+##### sender는 receiver가 현재 pck을 정확하게 수신했음을 알리기 전까지 새로운 데이터를 전달하지 않는다. pkt을 보내고 해당하는 ack가 오기전에 다른 pkt을 전송하지 않음 (sequential). ack가 정해진 timer(RTT 기준으로 정해짐)시간 내에 오지 않으면 (expired) 해당 pkt을 다시 재전송해준다(신뢰성). premature timeout 일 경우 아직 ack가 도착하기전에 재송신 하는 경우가 많아진다. -> 비효율적, timeout 시간이 너무 길어도 pkt loss에 대한 response가 너무 느려지므로 비효율적. 따라서 적당한 timeout 설정이 필요하다.
 
 ## GO-Back-N (pipelined protocol)
-##### stop-and-wait 방식에서 현재 pkt 에 대한 ack가 올때까지 다른 pkt을 전송하지 않는 것은 비효율적이다. 따라서 GO-BACK-N 방식에서는 window size N 만큼 pkt들을 ack가 올때까지 기다리지 않고 전송한다. comulative ack를 수신할때마다 window를 한칸씩 slide한다. 만약 base의 ack가 timer 시간 내에 수신되지 않으면(expired), 다시 해당 seqNum으로 돌아가서 window size 만큼 pkt들을 재송신한다. 이때 이미 sent된 pkt(receiver측에서 discard됨)들도 재송신된다 (비효율). 
+##### stop-and-wait 방식에서 현재 pkt 에 대한 ack가 올때까지 다른 pkt을 전송하지 않는 것은 비효율적이다. 따라서 GO-BACK-N 방식에서는 window size N 만큼 pkt들은 ack가 올때까지 기다리지 않고 전송한다. receiver는 오직 comulative ack만 보낸다, ack를 수신할때마다 window를 한칸씩 slide한다. 만약 base의 ack가 timer 시간 내에 수신되지 않으면(expired), 다시 해당 seqNum으로 돌아가서 window size 만큼 pkt들을 재송신한다. 이때 이미 sent된 pkt(receiver측에서 discard됨)들도 재송신된다 (비효율). 
+
 
 ## Selective Repeat (pipelined protocol)
-##### receiver는 buffer에 받은 pkt들을 저장한다. sender는 받지 못한 indivisual ack sender는 ack가 오지 않은 pkt들만 개별적으로 재전송하게됨. GO-Back-N의 비효율 해결.
+##### receiver는 buffer에 받은 pkt들을 저장한다. receiver는 개별 pkt에 대한 individual ack를 보낸다. sender는 ack가 오지 않은 pkt들만 개별적으로 재전송하게됨. GO-Back-N에서의 불필요한 재송신을 해결함.
 
 ## TCP Fast Retransmit
-##### sender가 중복 ack를 3번 받았다면, 그 pkt이 잘 전달되지 못했다고 생각하고 빠르게 재전송하는 것을 의미. timeout이 되기전에 해당 pkt을 빠르게 재전송 해줄 수 있음.
+##### sender가 중복 ack를 3번 받았다면, 그 pkt이 잘 전달되지 못했다고 생각하고 빠르게 재전송하는 것을 의미. timeout이 되기전에 해당 pkt을 빠르게 재전송 해줄 수 있다.
 
 ## TCP Flow Control
 ##### sender와 receiver의 1대1 connection을 통해 TCP header의 receive window field를 보고 receiver의 buffer 상태를 알 수 있음, 그에 따라 sender가 data를 보내는 속도를 제어.
@@ -156,5 +157,45 @@ ex) HTTP, IMAP, FTP
   
 - TCP Tahoe : TCP Tahoe는 처음에는 slow start로 exponentially하게 cwnd를 증가시킨다. ssthresh에 도달하면 AIMD 방식을 사용한다. 3 duplicate ack or timeout이 발생하면, 임계점을 cwnd 1/2로 줄이고 윈도우 크기는 1로 줄인다. 이 방식은 혼잡 이후 slow start 구간에서 cwnd를 적정 수준까지 끌어올리는데 너무 오래걸린다는 단점이 있다.
 
-- TCP Reno : TCP Reno는 첫 congestion이 발생하기 전까지는 Tahoe 방식과 똑같다. loss가 발생했을때 tahoe와 같은 방식으로 대응하지만 3 duplicate ack가 발생했을때는 fast recovery 방식을 사용한다. ssthresh를 cwnd 사이즈 1/2로 줄이고 cwnd는 1로 줄이는 것이 아니라 반으로 줄이고 윈도우 크기를 linear하게 증가시킨다.
+- TCP Reno : TCP Reno는 첫 congestion이 발생하기 전까지는 Tahoe 방식과 똑같다. loss가 발생했을때 tahoe와 같은 방식으로 대응하지만 3 duplicate ack가 발생했을때는 TCP Tahoe방식과 차이가 있다. fast recovery 방식을 사용한다. ssthresh를 cwnd 사이즈 1/2로 줄이고 cwnd는 1로 줄이는 것이 아니라 반으로 줄이고 slow start가 아닌 AIMD 방식으로 linear하게 cwnd를 증가시킨다.
+
+# Network Layer
+##### network layer에서는 host-to-host communication을 한다. 즉 host를 찾아주는 역할을 한다.
+sender는 segment를 datagram으로 encapsulation 한다. 중간 router는 datagram의 header를 보고 어디로 보낼지 결정한다. receiver는 datagram을 decapsulation해서 transport 계층으로 segment를 넘겨준다. 
+
+## forwarding
+##### input port에서 들어온 data를 output port로 맵핑해주는 것을 forwarding이라고 한다. router의 local 액션.
+## routing
+##### source to destination 전체 경로를 선정하는 것
+
+## Data plane
+##### local, input port로 들어온 datagram이 router의 어떤 output port로 forwarding 될지 결정함.
+
+## Control plane
+##### network-wide logic
+##### datagram이 from source host to destination host 어떻게 routed 되는지 결정함.
+
+## software-defined networking
+##### implemented in server (서버가 전체 상황을 보고 관리)
+  
+## Input port queueing 
+##### buffer over flow 때문에, queueing delay와 loss 발생
+##### HOL blocking 문제도 발생.
+
+## Switching fabrics
+##### memory, bus, crossbar 충돌확률이 bus보다 현저히 낮지만, cost가 더 비쌈.
+
+## scheduling discipline
+##### FIFO (first in first out), priority scheduling, Round Robin (RR) scheduling, Weighted Fair Queueing(WFQ) (priority에 따라 가중치를 두고 그 비율에 따라 round robin)
+
+## IP fragmentation
+##### 조각화, data그램을 나눠서 보냄 
+
+## IP addressing
+##### network ID : subnet을 찾기 위함, Host ID : host를 찾기 위함.
+
+## CIDR : Classless Inter Domain Routing
+##### static 하게 정해진 class 합쳐 IP를 더 유연하게 쓰기 위함
+## DHCP : Dynamic Host Configuration Protocol
+##### DHCP server에 의해 IP를 동적으로 할당함.
   
